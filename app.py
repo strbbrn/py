@@ -6,7 +6,11 @@ app = Flask(__name__)
 @app.route('/students', methods=['GET'])
 def get_students():
     students = get_all_students()
-    return jsonify(students)
+    if students:
+        return jsonify(students)
+    else:
+        return jsonify({'message': 'Table empty'}), 404
+    
 
 @app.route('/students/<int:id>', methods=['GET'])
 def get_user(id):
@@ -29,13 +33,20 @@ def update_existing_user(id):
     data = request.json
     name = data['name']
     email = data['email']
-    update_student(id, name, email)
-    return jsonify({'message': 'User updated successfully!'})
+    count = update_student(id, name, email)
+    if count == 1:
+        return jsonify({'message': 'User updated successfully!'})
+    else:
+        return jsonify({'message': 'User not found'}), 404
+    
 
 @app.route('/students/<int:id>', methods=['DELETE'])
 def delete_existing_user(id):
-    delete_student(id)
-    return jsonify({'message': 'User deleted successfully!'})
+    count = delete_student(id)
+    if count == 1:
+        return jsonify({'message': 'User deleted successfully!'})
+    else:
+        return jsonify({'message': 'User not found'}), 404
 
 if __name__ == '__main__':
     app.run(debug=True)

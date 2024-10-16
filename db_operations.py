@@ -25,16 +25,23 @@ def create_student(name, email):
     cursor = db.cursor()
     cursor.execute("INSERT INTO students (name, email) VALUES (%s, %s)", (name, email))
     db.commit()
+    print(cursor.rowcount)
     cursor.close()
 
 def update_student(user_id, name, email):
     cursor = db.cursor()
     cursor.execute("UPDATE students SET name = %s, email = %s WHERE id = %s", (name, email, user_id))
     db.commit()
+    print(cursor.rowcount)
+    count = cursor.rowcount
     cursor.close()
+    return count
 
 def delete_student(user_id):
     cursor = db.cursor()
     cursor.execute("DELETE FROM students WHERE id = %s", (user_id,))
     db.commit()
+    print(cursor.rowcount)
+    count = cursor.rowcount
     cursor.close()
+    return count
