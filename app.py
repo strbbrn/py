@@ -1,49 +1,60 @@
 from flask import Flask, request, jsonify
-from db_operations import get_all_students, get_student_by_id, create_student, update_student, delete_student
+from models import db, User
 
 app = Flask(__name__)
 
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:@localhost/shashi'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db.init_app(app)
+
+with app.app_context():
+    db.create_all()
+
 @app.route('/students', methods=['GET'])
 def get_students():
-    students = get_all_students()
-    if students:
-        return jsonify(students)
-    else:
-        return jsonify({'message': 'Table empty'}), 404
-    
+    students = User.query.all()
+    return jsonify([user.to_dict() for user in students])
 
 @app.route('/students/<int:id>', methods=['GET'])
 def get_user(id):
-    user = get_student_by_id(id)
+    user = User.query.get(id)
     if user:
-        return jsonify(user)
+        return jsonify(user.to_dict())
     else:
         return jsonify({'message': 'User not found'}), 404
 
 @app.route('/students', methods=['POST'])
-def create_new_user():
+def create_user():
     data = request.json
     name = data['name']
     email = data['email']
-    create_student(name, email)
+    
+    new_user = User(name=name, email=email)
+    db.session.add(new_user)
+    db.session.commit()
+    
     return jsonify({'message': 'User created successfully!'}), 201
 
 @app.route('/students/<int:id>', methods=['PUT'])
-def update_existing_user(id):
+def update_user(id):
     data = request.json
-    name = data['name']
-    email = data['email']
-    count = update_student(id, name, email)
-    if count == 1:
+    user = User.query.get(id)
+    
+    if user:
+        user.name = data['name']
+        user.email = data['email']
+        db.session.commit()
         return jsonify({'message': 'User updated successfully!'})
     else:
         return jsonify({'message': 'User not found'}), 404
-    
 
 @app.route('/students/<int:id>', methods=['DELETE'])
-def delete_existing_user(id):
-    count = delete_student(id)
-    if count == 1:
+def delete_user(id):
+    user = User.query.get(id)
+    if user:
+        db.session.delete(user)
+        db.session.commit()
         return jsonify({'message': 'User deleted successfully!'})
     else:
         return jsonify({'message': 'User not found'}), 404
