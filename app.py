@@ -1,7 +1,38 @@
 from flask import Flask, request, jsonify
 from db_operations import get_all_students, get_student_by_id, create_student, update_student, delete_student
-
+import jwt
+import datetime
 app = Flask(__name__)
+
+app.config['SECRET_KEY'] = 'shashiadminkey'
+
+def decode_token(token):
+    if not token:
+        return None, {'message': 'Auth Token is missing!'}
+
+    try:
+        data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
+        return data['role'], None
+    except jwt.ExpiredSignatureError:
+        return None, {'message': 'Token has expired!'}
+    except jwt.InvalidTokenError:
+        return None, {'message': 'Invalid token!'}
+
+@app.route('/login', methods=['POST'])
+def login():
+    auth_data = request.get_json()
+    username = auth_data['username']
+    password = auth_data['password']
+
+    if username == 'admin' and password == 'shashi':
+        token = jwt.encode({
+            'user': username,
+            'role': 'admin',
+            'exp': datetime.datetime.now() + datetime.timedelta(minutes=30)
+        }, app.config['SECRET_KEY'], algorithm="HS256")
+        return jsonify({'token': token})
+
+    return jsonify({'message': 'Invalid credentials'}), 401
 
 @app.route('/students', methods=['GET'])
 def get_students():
@@ -22,6 +53,13 @@ def get_user(id):
 
 @app.route('/students', methods=['POST'])
 def create_new_user():
+    token = request.headers.get('access-token')
+    role, error_response = decode_token(token)
+    if error_response:
+        return jsonify(error_response), 403
+
+    if role != 'admin':
+        return jsonify({'message': 'Permission denied: Admin role required'}), 403
     data = request.json
     name = data['name']
     email = data['email']
@@ -30,6 +68,13 @@ def create_new_user():
 
 @app.route('/students/<int:id>', methods=['PUT'])
 def update_existing_user(id):
+    token = request.headers.get('access-token')
+    role, error_response = decode_token(token)
+    if error_response:
+        return jsonify(error_response), 403
+
+    if role != 'admin':
+        return jsonify({'message': 'Permission denied: Admin role required'}), 403
     data = request.json
     name = data['name']
     email = data['email']
@@ -42,6 +87,13 @@ def update_existing_user(id):
 
 @app.route('/students/<int:id>', methods=['DELETE'])
 def delete_existing_user(id):
+    token = request.headers.get('access-token')
+    role, error_response = decode_token(token)
+    if error_response:
+        return jsonify(error_response), 403
+
+    if role != 'admin':
+        return jsonify({'message': 'Permission denied: Admin role required'}), 403
     count = delete_student(id)
     if count == 1:
         return jsonify({'message': 'User deleted successfully!'})
