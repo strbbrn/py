@@ -1,4 +1,5 @@
 import mysql.connector
+import hashlib
 
 db = mysql.connector.connect(
     host="localhost",
@@ -6,6 +7,22 @@ db = mysql.connector.connect(
     password="",
     database="shashi"
 )
+def register_user(data):
+    cursor = db.cursor()
+    email = data['email']
+    password = data['password']
+    hashed_password = hashlib.md5(password.encode()).hexdigest()
+    cursor.execute("INSERT INTO admin (email, password) VALUES (%s, %s)",
+                   (email, hashed_password))
+    db.commit()
+    cursor.close()
+
+
+def db_login(email):
+    cursor = db.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM admin WHERE email = %s", (email,))
+    user = cursor.fetchone()
+    return user
 
 def get_all_students():
     cursor = db.cursor(dictionary=True)
