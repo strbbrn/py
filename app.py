@@ -1,7 +1,8 @@
 from flask import Flask, request, jsonify
-from db_operations import get_all_students, get_student_by_id, create_student, update_student, delete_student
+from db_operations import get_all_students, get_student_by_id, create_student, update_student, delete_student, db_login, register_user
 import jwt
 import datetime
+import hashlib
 app = Flask(__name__)
 
 app.config['SECRET_KEY'] = 'shashiadminkey'
@@ -17,17 +18,24 @@ def decode_token(token):
         return None, {'message': 'Token has expired!'}
     except jwt.InvalidTokenError:
         return None, {'message': 'Invalid token!'}
+    
+@app.route('/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    register_user(data)
+    return jsonify({'message': 'User registered successfully'}), 201
 
 @app.route('/login', methods=['POST'])
 def login():
     auth_data = request.get_json()
-    username = auth_data['username']
+    email = auth_data['email']
     password = auth_data['password']
-
-    if username == 'admin' and password == 'shashi':
+    user = db_login(email)
+    
+    if user and hashlib.md5(password.encode()).hexdigest() == user['password']:
         token = jwt.encode({
-            'user': username,
-            'role': 'admin',
+            'user': email,
+            'role': user['role'],
             'exp': datetime.datetime.now() + datetime.timedelta(minutes=30)
         }, app.config['SECRET_KEY'], algorithm="HS256")
         return jsonify({'token': token})
