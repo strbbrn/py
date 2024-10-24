@@ -1,13 +1,18 @@
-from flask import Flask, request, jsonify
-from db_operations import get_all_students, get_student_by_id, create_student, update_student, delete_student, db_login, register_user
+from flask import Flask, request
 import jwt
 from flask_cors import CORS
 from routes.auth_routes import auth_bp
 from routes.student_routes import student_bp
+from flasgger import Swagger
 
 app = Flask(__name__)
 CORS(app)
 app.config['SECRET_KEY'] = 'shashiadminkey'
+app.config['SWAGGER'] = {
+    'title': 'Student API',
+    'uiversion': 3
+}
+swagger = Swagger(app)
 
 def decode_token(token):
     if not token:
